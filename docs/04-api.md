@@ -923,7 +923,7 @@ Authorization: Bearer {token}
 
 #### 5.1.8 确认入库
 
-**接口地址**: `POST /api/inbound-orders/:id/complete`
+**接口地址**: `POST /api/inbound-orders/:id/confirm`
 
 **请求参数**:
 
@@ -1064,7 +1064,7 @@ Authorization: Bearer {token}
 
 #### 6.1.8 确认出库
 
-**接口地址**: `POST /api/outbound-orders/:id/complete`
+**接口地址**: `POST /api/outbound-orders/:id/confirm`
 
 **请求参数**:
 

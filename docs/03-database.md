@@ -20,7 +20,18 @@
 | **软删除** | 重要数据使用软删除，保留历史记录 |
 | **审计字段** | 每张表包含创建时间、更新时间等审计字段 |
 
-### 1.3 ER 图总览
+### 1.3 版本表范围
+
+不同版本需要创建的数据表：
+
+| 版本 | 数据表 | 说明 |
+|------|--------|------|
+| **v1.0.0** | user, role, permission, operation_log, system_config, category, product, warehouse, zone, location, supplier, customer, stock, stock_record, inbound_order, inbound_item, outbound_order, outbound_item | 核心业务表 |
+| **v1.1.0** | + stock_freeze, stock_alert, inventory_task, inventory_item | 库存管理增强 |
+| **v1.2.0** | + move_order, print_template, print_element, print_record, barcode_rule | 高级功能 |
+| **v2.0.0** | + api_key, allocation_order | 扩展功能 |
+
+### 1.4 ER 图总览
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
