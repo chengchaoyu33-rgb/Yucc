@@ -26,10 +26,15 @@
 
 | 版本 | 数据表 | 说明 |
 |------|--------|------|
-| **v1.0.0** | user, role, permission, operation_log, system_config, category, product, warehouse, zone, location, supplier, customer, stock, stock_record, inbound_order, inbound_item, outbound_order, outbound_item | 核心业务表 |
+| **v1.0.0** | user, role, permission, operation_log, login_log, system_config, dict_type, dict_data, category, product, warehouse, zone, location, supplier, customer, stock, stock_record, stock_adjustment, inbound_order, inbound_item, outbound_order, outbound_item | 核心业务表 |
 | **v1.1.0** | + stock_freeze, stock_alert, inventory_task, inventory_item | 库存管理增强 |
 | **v1.2.0** | + move_order, print_template, print_element, print_record, barcode_rule | 高级功能 |
 | **v2.0.0** | + api_key, allocation_order | 扩展功能 |
+
+> **v1.0.0 新增表说明**：
+> - `login_log`: 登录日志表，记录用户登录行为（安全审计）
+> - `dict_type`, `dict_data`: 数据字典表，管理系统下拉选项
+> - `stock_adjustment`: 库存调整记录表，记录库存手动调整
 
 ### 1.4 ER 图总览
 
@@ -120,18 +125,20 @@ datasource db {
 // ==================== 系统管理模块 ====================
 
 model User {
-  userId       String   @id @default(uuid()) @map("user_id") @db.VarChar(36)
-  username     String   @unique @db.VarChar(50)
-  password     String   @db.VarChar(255)
-  nickname     String?  @db.VarChar(50)
-  email        String?  @db.VarChar(100)
-  phone        String?  @db.VarChar(20)
-  avatar       String?  @db.VarChar(255)
-  status       Int      @default(1)      // 0: 禁用, 1: 启用
-  roleCode     String?  @db.VarChar(50)
-  role         Role?    @relation(fields: [roleCode], references: [code])
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  userId        String   @id @default(uuid()) @map("user_id") @db.VarChar(36)
+  username      String   @unique @db.VarChar(50)
+  password      String   @db.VarChar(255)
+  nickname      String?  @db.VarChar(50)
+  email         String?  @db.VarChar(100)
+  phone         String?  @db.VarChar(20)
+  avatar        String?  @db.VarChar(255)
+  status        Int      @default(1)      // 0: 禁用, 1: 启用
+  roleCode      String?  @db.VarChar(50)
+  role          Role?    @relation(fields: [roleCode], references: [code])
+  lastLoginTime DateTime? @map("last_login_time")         // 最后登录时间
+  lastLoginIp   String?  @map("last_login_ip") @db.VarChar(50)  // 最后登录IP
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
   
   @@index([roleCode])
   @@map("user")
@@ -200,6 +207,49 @@ model SystemConfig {
   updatedAt    DateTime @updatedAt @map("updated_at")
   
   @@map("system_config")
+}
+
+model LoginLog {
+  loginLogId   String   @id @default(uuid()) @map("login_log_id") @db.VarChar(36)
+  userId       String?  @map("user_id") @db.VarChar(36)
+  username     String   @db.VarChar(50)
+  loginIp      String   @map("login_ip") @db.VarChar(50)
+  loginDevice  String?  @map("login_device") @db.VarChar(255)
+  loginStatus  Int      @map("login_status")          // 0: 失败, 1: 成功
+  loginMessage String?  @map("login_message") @db.VarChar(255)
+  loginTime    DateTime @default(now()) @map("login_time")
+  
+  @@index([userId])
+  @@index([loginTime])
+  @@map("login_log")
+}
+
+model DictType {
+  dictTypeId   String     @id @default(uuid()) @map("dict_type_id") @db.VarChar(36)
+  dictType     String     @unique @map("dict_type") @db.VarChar(50)
+  dictName     String     @map("dict_name") @db.VarChar(100)
+  description  String?    @db.VarChar(255)
+  status       Int        @default(1)
+  dictData     DictData[]
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+  
+  @@map("dict_type")
+}
+
+model DictData {
+  dictDataId  String    @id @default(uuid()) @map("dict_data_id") @db.VarChar(36)
+  dictType    String    @map("dict_type") @db.VarChar(50)
+  dictLabel   String    @map("dict_label") @db.VarChar(100)
+  dictValue   String    @map("dict_value") @db.VarChar(100)
+  sortOrder   Int       @default(0) @map("sort_order")
+  status      Int       @default(1)
+  remark      String?   @db.VarChar(255)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  
+  @@index([dictType])
+  @@map("dict_data")
 }
 
 // ==================== 基础数据模块 ====================
@@ -354,6 +404,7 @@ model Stock {
   stockId        String       @id @default(uuid()) @map("stock_id") @db.VarChar(36)
   productCode    String       @db.VarChar(50)
   product        Product      @relation(fields: [productCode], references: [code])
+  warehouseCode  String       @map("warehouse_code") @db.VarChar(50)  // 仓库编码（冗余，便于按仓库查询）
   locationCode   String       @db.VarChar(50)
   location       Location     @relation(fields: [locationCode], references: [code])
   batchNo        String?      @map("batch_no") @db.VarChar(50)     // 批次号
@@ -367,6 +418,7 @@ model Stock {
   
   @@unique([productCode, locationCode, batchNo])
   @@index([productCode])
+  @@index([warehouseCode])
   @@index([locationCode])
   @@index([expireDate])
   @@map("stock")
@@ -376,7 +428,7 @@ model StockRecord {
   stockRecordId String   @id @default(uuid()) @map("stock_record_id") @db.VarChar(36)
   stockId       String   @map("stock_id") @db.VarChar(36)
   stock         Stock    @relation(fields: [stockId], references: [stockId])
-  type          String   @db.VarChar(20)        // inbound: 入库, outbound: 出库, freeze: 冻结, unfreeze: 解冻
+  type          String   @db.VarChar(20)        // inbound: 入库, outbound: 出库, freeze: 冻结, unfreeze: 解冻, adjust: 调整
   changeQty     Int      @map("change_qty")     // 变动数量
   beforeQty     Int      @map("before_qty")     // 变动前数量
   afterQty      Int      @map("after_qty")      // 变动后数量
@@ -391,6 +443,27 @@ model StockRecord {
   @@index([type])
   @@index([createdAt])
   @@map("stock_record")
+}
+
+model StockAdjustment {
+  stockAdjustmentId String   @id @default(uuid()) @map("stock_adjustment_id") @db.VarChar(36)
+  adjustmentNo      String   @unique @map("adjustment_no") @db.VarChar(50)
+  productCode       String   @map("product_code") @db.VarChar(50)
+  locationCode      String   @map("location_code") @db.VarChar(50)
+  batchNo           String?  @map("batch_no") @db.VarChar(50)
+  beforeQty         Int      @map("before_qty")                   // 调整前数量
+  adjustQty         Int      @map("adjust_qty")                   // 调整数量（正数增加，负数减少）
+  afterQty          Int      @map("after_qty")                    // 调整后数量
+  adjustType        String   @map("adjust_type") @db.VarChar(20)  // increase: 盘盈, decrease: 盘亏, other: 其他
+  reason            String?  @db.VarChar(255)
+  operatorId        String?  @map("operator_id") @db.VarChar(36)
+  operatorName      String?  @map("operator_name") @db.VarChar(50)
+  createdAt         DateTime @default(now()) @map("created_at")
+  
+  @@index([productCode])
+  @@index([locationCode])
+  @@index([createdAt])
+  @@map("stock_adjustment")
 }
 
 model StockFreeze {

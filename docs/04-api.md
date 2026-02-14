@@ -359,6 +359,39 @@ Authorization: Bearer {token}
 }
 ```
 
+#### 3.1.8 生成商品条码
+
+**接口地址**: `POST /api/products/:id/generate-barcode`
+
+**请求参数**:
+
+```json
+{
+  "type": "CODE128"
+}
+```
+
+**响应示例**:
+
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": {
+    "barcode": "P000001",
+    "barcodeImage": "/uploads/barcodes/P000001.png"
+  }
+}
+```
+
+#### 3.1.9 导出商品数据
+
+**接口地址**: `GET /api/products/export`
+
+**请求参数**: 同商品列表接口
+
+**响应**: Excel 文件下载
+
 ### 3.2 商品分类管理
 
 #### 3.2.1 获取分类树
@@ -741,6 +774,96 @@ Authorization: Bearer {token}
   "freezeId": "xxx"
 }
 ```
+
+### 4.5 库存调整
+
+#### 4.5.1 库存调整
+
+**接口地址**: `POST /api/stocks/adjust`
+
+**请求参数**:
+
+```json
+{
+  "productCode": "P001",
+  "locationCode": "A-01-01",
+  "batchNo": "B20240101",
+  "adjustQty": 10,
+  "adjustType": "increase",
+  "reason": "盘点盘盈"
+}
+```
+
+**响应示例**:
+
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": {
+    "adjustmentNo": "TZ20240101001",
+    "beforeQty": 90,
+    "adjustQty": 10,
+    "afterQty": 100
+  }
+}
+```
+
+#### 4.5.2 获取调整记录
+
+**接口地址**: `GET /api/stock-adjustments`
+
+**请求参数**:
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| page | int | 否 | 页码 |
+| pageSize | int | 否 | 每页数量 |
+| productCode | string | 否 | 商品编码 |
+| locationCode | string | 否 | 库位编码 |
+| adjustType | string | 否 | 调整类型 |
+| startDate | string | 否 | 开始日期 |
+| endDate | string | 否 | 结束日期 |
+
+**响应示例**:
+
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": {
+    "list": [
+      {
+        "id": "uuid",
+        "adjustmentNo": "TZ20240101001",
+        "productCode": "P001",
+        "productName": "商品名称",
+        "locationCode": "A-01-01",
+        "beforeQty": 90,
+        "adjustQty": 10,
+        "afterQty": 100,
+        "adjustType": "increase",
+        "reason": "盘点盘盈",
+        "operatorName": "管理员",
+        "createdAt": "2024-01-01T10:00:00Z"
+      }
+    ],
+    "total": 50,
+    "page": 1,
+    "pageSize": 20
+  }
+}
+```
+
+### 4.6 库存导出
+
+#### 4.6.1 导出库存数据
+
+**接口地址**: `GET /api/stocks/export`
+
+**请求参数**: 同库存列表接口
+
+**响应**: Excel 文件下载
 
 ---
 
@@ -1428,13 +1551,57 @@ Authorization: Bearer {token}
 | startDate | string | 否 | 开始日期 |
 | endDate | string | 否 | 结束日期 |
 
-### 9.5 系统配置
+### 9.5 登录日志
 
-#### 9.5.1 获取系统配置
+#### 9.5.1 获取登录日志
+
+**接口地址**: `GET /api/login-logs`
+
+**请求参数**:
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| page | int | 否 | 页码 |
+| pageSize | int | 否 | 每页数量 |
+| userId | string | 否 | 用户ID |
+| username | string | 否 | 用户名 |
+| loginStatus | int | 否 | 登录状态: 0失败 1成功 |
+| startDate | string | 否 | 开始日期 |
+| endDate | string | 否 | 结束日期 |
+
+**响应示例**:
+
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": {
+    "list": [
+      {
+        "id": "uuid",
+        "userId": "uuid",
+        "username": "admin",
+        "loginIp": "192.168.1.100",
+        "loginDevice": "Chrome/Windows",
+        "loginStatus": 1,
+        "loginMessage": "登录成功",
+        "loginTime": "2024-01-01T10:00:00Z"
+      }
+    ],
+    "total": 100,
+    "page": 1,
+    "pageSize": 20
+  }
+}
+```
+
+### 9.6 系统配置
+
+#### 9.6.1 获取系统配置
 
 **接口地址**: `GET /api/system-configs`
 
-#### 9.5.2 更新系统配置
+#### 9.6.2 更新系统配置
 
 **接口地址**: `PUT /api/system-configs/:key`
 
@@ -1445,6 +1612,93 @@ Authorization: Bearer {token}
   "value": "新配置值"
 }
 ```
+
+### 9.7 数据字典管理
+
+#### 9.7.1 获取字典类型列表
+
+**接口地址**: `GET /api/dict-types`
+
+**请求参数**:
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| page | int | 否 | 页码 |
+| pageSize | int | 否 | 每页数量 |
+| keyword | string | 否 | 关键词搜索 |
+
+**响应示例**:
+
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": {
+    "list": [
+      {
+        "id": "uuid",
+        "dictType": "inbound_type",
+        "dictName": "入库类型",
+        "description": "入库单类型字典",
+        "status": 1,
+        "createdAt": "2024-01-01T00:00:00Z"
+      }
+    ],
+    "total": 10,
+    "page": 1,
+    "pageSize": 20
+  }
+}
+```
+
+#### 9.7.2 创建字典类型
+
+**接口地址**: `POST /api/dict-types`
+
+**请求参数**:
+
+```json
+{
+  "dictType": "inbound_type",
+  "dictName": "入库类型",
+  "description": "入库单类型字典"
+}
+```
+
+#### 9.7.3 获取字典数据列表
+
+**接口地址**: `GET /api/dict-data`
+
+**请求参数**:
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| dictType | string | 是 | 字典类型 |
+| page | int | 否 | 页码 |
+| pageSize | int | 否 | 每页数量 |
+
+#### 9.7.4 创建字典数据
+
+**接口地址**: `POST /api/dict-data`
+
+**请求参数**:
+
+```json
+{
+  "dictType": "inbound_type",
+  "dictLabel": "采购入库",
+  "dictValue": "purchase",
+  "sortOrder": 1
+}
+```
+
+#### 9.7.5 更新字典数据
+
+**接口地址**: `PUT /api/dict-data/:id`
+
+#### 9.7.6 删除字典数据
+
+**接口地址**: `DELETE /api/dict-data/:id`
 
 ---
 
